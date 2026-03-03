@@ -1,8 +1,17 @@
 fn main() {
-    let mut game = Grid {size: 4, board: Vec::new()};
+    let mut game = Grid {size: 3, board: Vec::new()};
     game.check_goal_state();
     game.initialize_board();
-    game.print_state()
+    game.print_state();
+
+    let to_index: i32 = 3;
+    let index = game.get_number_index(to_index);
+    match index {
+        Some(c) => println!("Index of {}: {},{}", to_index, c.x(), c.y()),
+        None => {println!("No index found")}
+    }
+
+
 }
 
 struct Coord {
@@ -23,19 +32,19 @@ struct Grid {
 }
 
 impl Grid {
-    fn get_number_index(&self, num: i32) -> Coord {
+    fn get_number_index(&self, num: i32) -> Option<Coord> {
         for i in 0..self.size {
             for j in 0..self.size {
                 if (self.board[i as usize][j as usize] == num) {
                     let test : Coord = Coord { x: i as i32, y: j as i32};
-                    return test;
+                    return Some(test);
                 }
             }
         }
-
+        None
     }
-    fn get_movable_tiles(&self) -> Vec<i32> {
-        ;
+    fn get_movable_tiles(&self) -> Option<Vec<i32>> {
+        None
     }
     fn print_state(&self) {
         for i in 0..self.size {
