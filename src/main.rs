@@ -11,9 +11,22 @@ fn main() {
         None => {println!("No index found")}
     }
 
-
+    let movables: Option<Vec<Coord>> = game.get_movable_tiles();
+    if let Some(m) = movables {
+        println!("Movables {:?}", m);
+        //for i in 0..=4 {
+        //    print!("{:?}, ", game.get_tile(m.get(0)));
+        //}
+        for element in &m {
+            println!("{:?}", game.get_tile(element));
+        }
+    }
+    else {
+        println!("No movables found");
+    }
 }
 
+#[derive(Debug)]
 struct Coord {
     x: i32, y: i32
 }
@@ -43,8 +56,32 @@ impl Grid {
         }
         None
     }
-    fn get_movable_tiles(&self) -> Option<Vec<i32>> {
+
+    fn get_tile(&self, coord: &Coord) -> Option<i32> {
+        let x: i32 = coord.x();
+        let y: i32 = coord.y();
+        if (x >= 0 && x < self.size as i32 && y >= 0 && y < self.size as i32) {
+            return Some(self.board[x as usize][y as usize])
+        }
         None
+    }
+    fn get_movable_tiles(&self) -> Option<Vec<Coord>> {
+        let empty_tile: Option<Coord> = self.get_number_index(0);
+        if let Some(coord) = empty_tile {
+            let x: i32 = coord.x();
+            let y: i32 = coord.y();
+            let mut quad: Vec<Coord> = Vec::new();
+            quad.push(Coord { x: x-1, y: y });
+            quad.push(Coord { x: x, y: y-1});
+            quad.push(Coord { x: x, y: y+1 });
+            quad.push(Coord { x: x+1, y: y });
+            return Some(quad);
+
+            return None
+        } else {
+            None
+        }
+
     }
     fn print_state(&self) {
         for i in 0..self.size {
