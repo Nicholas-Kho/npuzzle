@@ -1,6 +1,8 @@
 fn main() {
-    let game = Grid {size: 3, board: Vec::new()};
+    println!("Test");
+    let mut game = Grid {size: 3, board: Vec::new()};
     game.check_goal_state();
+    game.initialize_board()
 }
 
 struct Grid {
@@ -9,20 +11,32 @@ struct Grid {
 
 impl Grid {
     fn check_goal_state(&self) -> bool {
-        let counter: i32 = 0;
+        let mut counter: i32 = 0;
         let mut goal_state : Vec<Vec<i32>> = Vec::new();
+        for _i in 0..self.size {
+            let mut temp: Vec<i32> = Vec::new();
+            for _x in 0..self.size {
+                temp.push(0);
+            }
+            goal_state.push(temp);
+        }
         let n: usize = (self.size * self.size) as usize;
-        for i in 0..=n {
-            goal_state[i / 3][i % 3] = counter
+        for i in 0..n {
+            goal_state[i / self.size as usize][i % self.size as usize] = counter;
+            counter += 1;
         }
         println!("{:?}", goal_state);
-        return false
+        let equal = goal_state == self.board;
+        println!("{}", equal);
+        false
     }
-    fn initialize_board() {
-        let _board = vec![
-            vec![0, 0, 0],
-            vec![0, 0, 0],
-            vec![0, 0, 0],
-        ];
+    fn initialize_board(&mut self) {
+        for _i in 0..self.size {
+            let mut temp: Vec<i32> = Vec::new();
+            for _x in 0..self.size {
+                temp.push(0);
+            }
+            self.board.push(temp);
+        }
     }
 }
