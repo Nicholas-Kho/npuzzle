@@ -2,7 +2,8 @@ fn main() {
     println!("Test");
     let mut game = Grid {size: 3, board: Vec::new()};
     game.check_goal_state();
-    game.initialize_board()
+    game.initialize_board();
+    game.print_state()
 }
 
 struct Grid {
@@ -10,6 +11,15 @@ struct Grid {
 }
 
 impl Grid {
+
+    fn print_state(&self) {
+        for i in 0..self.size {
+            for x in 0..self.size {
+                print!("{}", self.board[i as usize][x as usize])
+            }
+            print!("\n")
+        }
+    }
     fn check_goal_state(&self) -> bool {
         let mut counter: i32 = 0;
         let mut goal_state : Vec<Vec<i32>> = Vec::new();
