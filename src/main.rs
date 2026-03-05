@@ -2,17 +2,18 @@ use std::io;
 use std::num::ParseIntError;
 
 fn main() {
-    let mut game = Grid {size: 3, board: Vec::new(), moves: 0};
+    let mut game = Grid {size: 5, board: Vec::new(), moves: 0, iterations: 1};
     game.check_goal_state();
     game.initialize_board();
-    game.print_state();
+    //game.print_state();
 
-    let to_index: i32 = 0;
-    let index = game.get_number_index(to_index);
-    match index {
-        Some(c) => println!("Index of {}: {},{}", to_index, c.x(), c.y()),
-        None => {println!("No index found")}
-    }
+    //let to_index: i32 = 0;
+    //let index = game.get_number_index(to_index);
+    //match index {
+    //    Some(c) => println!("Index of {}: {},{}", to_index, c.x(), c.y()),
+    //    None => {println!("No index found")}
+    //}
+    //println!("Game is solvable: {}", game.is_solvable());
 
     loop {
         let movables: Vec<Coord> = game.get_movable_tiles();
@@ -30,7 +31,7 @@ fn main() {
                     Some(c) => {
                         if movables.contains(&c) {
                             game.move_tile(c);
-                            println!("Moved")
+                            println!("Moves: {}", game.moves)
                         } else {
                             println!("Not movable")
                         }
@@ -64,19 +65,46 @@ impl Coord {
 }
 
 struct Grid {
-    size: u32, board: Vec<Vec<i32>>, moves: i32
+    size: u32, board: Vec<Vec<i32>>, moves: i32, iterations: i32
 }
 
 impl Grid {
-    fn calculate_inversions(&self) -> i32 {
-        let inversions: i32 = 0;
-        for i in 0..self.size {
-            for x in 0..self.size {
-                for y in 0..(self.size**) {
-
+    fn is_solvable(&self) -> bool {
+        let is_even: bool = self.size % 2 == 0;
+        let inversions: i32 = self.calculate_inversions();
+        //println!("Number of inversions: {}", inversions);
+        if !is_even {
+            return inversions % 2 == 0;
+        } else if is_even {
+            let blank_index: Option<Coord> = self.get_number_index(0);
+            match blank_index {
+                Some(index) => {
+                    // Check if blank is even starting from the bottom
+                    let blank_even_index: bool = (index.y() + 1 + (index.x()%2)) % 2 == 0;
+                    //println!("Is blank even: {}", blank_even_index);
+                    if (blank_even_index && inversions % 2 == 1) { return true }
+                    if (!blank_even_index && inversions % 2 == 0) {return true}
                 }
+                None => {}
             }
         }
+        false
+    }
+    fn calculate_inversions(&self) -> i32 {
+        let mut inversions: i32 = 0;
+        let mut v: Vec<i32> = (0..(self.size * self.size) as i32).collect();
+        for i in 0..(self.size*self.size) {
+            let num: i32 = self.board[i as usize / self.size as usize][i as usize % self.size as usize];
+            let index: Option<usize> = v.iter().position(|&r| r == num);
+            match index {
+                Some(x) => {
+                    inversions += x as i32;
+                    v.remove(x);
+                }
+                None => {}
+            }
+        }
+
         inversions
     }
     fn calculate_g(&self) -> i32 {
@@ -101,21 +129,25 @@ impl Grid {
         if self.get_tile(&Coord {x:coord.x()-1, y:coord.y()}) == Some(0) {
             self.set_tile(Coord {x:coord.x()-1, y:coord.y()}, value);
             self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            self.moves += 1;
             return
         }
         if self.get_tile(&Coord {x:coord.x(), y:coord.y()-1}) == Some(0) {
             self.set_tile(Coord {x:coord.x(), y:coord.y()-1}, value);
             self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            self.moves += 1;
             return
         }
         if self.get_tile(&Coord {x:coord.x(), y:coord.y()+1}) == Some(0) {
             self.set_tile(Coord {x:coord.x(), y:coord.y()+1}, value);
             self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            self.moves += 1;
             return
         }
         if self.get_tile(&Coord {x:coord.x()+1, y:coord.y()}) == Some(0) {
             self.set_tile(Coord {x:coord.x()+1, y:coord.y()}, value);
             self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            self.moves += 1;
             return
         }
 
@@ -195,6 +227,7 @@ impl Grid {
         false
     }
     fn initialize_board(&mut self) {
+        self.board.clear();
         let mut numbers: Vec<i32> = Vec::new();
         for i in 0..self.size*self.size {
             numbers.push(i as i32);
@@ -206,6 +239,13 @@ impl Grid {
                 temp.push(numbers.remove(rand::random_range(0..numbers.len())));
             }
             self.board.push(temp);
+        }
+        if (!self.is_solvable()) {
+            self.iterations += 1;
+            println!("Generated an unsolvable board, regenerating");
+            self.initialize_board()
+        } else {
+            println!("Found a solvable game! Number of grids checked: {}", self.iterations)
         }
     }
 }
