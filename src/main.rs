@@ -2,7 +2,7 @@ use std::io;
 use std::num::ParseIntError;
 
 fn main() {
-    let mut game = Grid {size: 3, board: Vec::new()};
+    let mut game = Grid {size: 3, board: Vec::new(), moves: 0};
     game.check_goal_state();
     game.initialize_board();
     game.print_state();
@@ -14,9 +14,9 @@ fn main() {
         None => {println!("No index found")}
     }
 
-
     loop {
         let movables: Vec<Coord> = game.get_movable_tiles();
+        game.check_goal_state();
         game.print_state();
         let mut input_string = String::new();
         io::stdin().read_line(&mut input_string).expect("Failed");
@@ -64,10 +64,28 @@ impl Coord {
 }
 
 struct Grid {
-    size: u32, board: Vec<Vec<i32>>
+    size: u32, board: Vec<Vec<i32>>, moves: i32
 }
 
 impl Grid {
+    fn calculate_inversions(&self) -> i32 {
+        let inversions: i32 = 0;
+        for i in 0..self.size {
+            for x in 0..self.size {
+                for y in 0..(self.size**) {
+
+                }
+            }
+        }
+        inversions
+    }
+    fn calculate_g(&self) -> i32 {
+        return self.moves;
+    }
+
+    fn calculate_heuristic(&self) {
+
+    }
 
     fn set_tile(&mut self, coord: Coord, value: i32) {
         self.board[coord.x() as usize][coord.y() as usize] = value;
@@ -161,9 +179,16 @@ impl Grid {
             goal_state.push(temp);
         }
         let n: usize = (self.size * self.size) as usize;
-        for i in 0..n {
+        if (self.size == 3) {counter += 1}
+        for mut i in 0..n {
             goal_state[i / self.size as usize][i % self.size as usize] = counter;
             counter += 1;
+            if (self.size == 3 && i == 3) {
+                counter = 0
+            }
+            if (self.size == 3 && i == 4) {
+                counter = 5
+            }
         }
         //println!("{:?}", goal_state);
         let _equal = goal_state == self.board;
