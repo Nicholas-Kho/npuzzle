@@ -1,32 +1,55 @@
+use std::io;
+use std::num::ParseIntError;
+
 fn main() {
     let mut game = Grid {size: 3, board: Vec::new()};
     game.check_goal_state();
     game.initialize_board();
     game.print_state();
 
-    let to_index: i32 = 3;
+    let to_index: i32 = 0;
     let index = game.get_number_index(to_index);
     match index {
         Some(c) => println!("Index of {}: {},{}", to_index, c.x(), c.y()),
         None => {println!("No index found")}
     }
 
-    let movables: Option<Vec<Coord>> = game.get_movable_tiles();
-    if let Some(m) = movables {
-        println!("Movables {:?}", m);
-        //for i in 0..=4 {
-        //    print!("{:?}, ", game.get_tile(m.get(0)));
-        //}
-        for element in &m {
-            println!("{:?}", game.get_tile(element));
+
+    loop {
+        let movables: Vec<Coord> = game.get_movable_tiles();
+        game.print_state();
+        let mut input_string = String::new();
+        io::stdin().read_line(&mut input_string).expect("Failed");
+        //println!("test: {}", input_string);
+        let number: Result<i32, ParseIntError> = input_string.trim().parse();
+        //println!("{:?}", number);
+        match number {
+            Ok(i) => {
+                let coord: Option<Coord> = game.get_number_index(i);
+                match coord {
+                    Some(c) => {
+                        if movables.contains(&c) {
+                            game.move_tile(c);
+                            println!("Moved")
+                        } else {
+                            println!("Not movable")
+                        }
+
+                    },
+                    None => println!("Not a valid number"),
+                }
+            }
+            Err(Error) => {
+                println!("Not a number, {}", Error);
+            }
         }
     }
-    else {
-        println!("No movables found");
-    }
+
+
 }
 
-#[derive(Debug)]
+#[derive(Debug)] // Makes printing debug possible {:?}
+#[derive(PartialEq)] // Makes comparisons (==) possible
 struct Coord {
     x: i32, y: i32
 }
@@ -45,10 +68,44 @@ struct Grid {
 }
 
 impl Grid {
+
+    fn set_tile(&mut self, coord: Coord, value: i32) {
+        self.board[coord.x() as usize][coord.y() as usize] = value;
+    }
+
+    fn move_tile(&mut self, coord: Coord) {
+        let temp = self.get_tile(&coord);
+        let value: i32;
+        match temp {
+            Some(v) => {value = v;},
+            None => {value = 0}
+        }
+        if self.get_tile(&Coord {x:coord.x()-1, y:coord.y()}) == Some(0) {
+            self.set_tile(Coord {x:coord.x()-1, y:coord.y()}, value);
+            self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            return
+        }
+        if self.get_tile(&Coord {x:coord.x(), y:coord.y()-1}) == Some(0) {
+            self.set_tile(Coord {x:coord.x(), y:coord.y()-1}, value);
+            self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            return
+        }
+        if self.get_tile(&Coord {x:coord.x(), y:coord.y()+1}) == Some(0) {
+            self.set_tile(Coord {x:coord.x(), y:coord.y()+1}, value);
+            self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            return
+        }
+        if self.get_tile(&Coord {x:coord.x()+1, y:coord.y()}) == Some(0) {
+            self.set_tile(Coord {x:coord.x()+1, y:coord.y()}, value);
+            self.set_tile(Coord {x:coord.x(), y:coord.y()}, 0);
+            return
+        }
+
+    }
     fn get_number_index(&self, num: i32) -> Option<Coord> {
         for i in 0..self.size {
             for j in 0..self.size {
-                if (self.board[i as usize][j as usize] == num) {
+                if self.board[i as usize][j as usize] == num {
                     let test : Coord = Coord { x: i as i32, y: j as i32};
                     return Some(test);
                 }
@@ -60,12 +117,12 @@ impl Grid {
     fn get_tile(&self, coord: &Coord) -> Option<i32> {
         let x: i32 = coord.x();
         let y: i32 = coord.y();
-        if (x >= 0 && x < self.size as i32 && y >= 0 && y < self.size as i32) {
+        if x >= 0 && x < self.size as i32 && y >= 0 && y < self.size as i32 {
             return Some(self.board[x as usize][y as usize])
         }
         None
     }
-    fn get_movable_tiles(&self) -> Option<Vec<Coord>> {
+    fn get_movable_tiles(&self) -> Vec<Coord> {
         let empty_tile: Option<Coord> = self.get_number_index(0);
         if let Some(coord) = empty_tile {
             let x: i32 = coord.x();
@@ -75,11 +132,9 @@ impl Grid {
             quad.push(Coord { x: x, y: y-1});
             quad.push(Coord { x: x, y: y+1 });
             quad.push(Coord { x: x+1, y: y });
-            return Some(quad);
-
-            return None
+            quad
         } else {
-            None
+            Vec::new()
         }
 
     }
@@ -110,7 +165,7 @@ impl Grid {
             goal_state[i / self.size as usize][i % self.size as usize] = counter;
             counter += 1;
         }
-        println!("{:?}", goal_state);
+        //println!("{:?}", goal_state);
         let _equal = goal_state == self.board;
         false
     }
