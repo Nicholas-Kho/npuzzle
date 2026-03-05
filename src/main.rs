@@ -2,7 +2,7 @@ use std::io;
 use std::num::ParseIntError;
 
 fn main() {
-    let mut game = Grid {size: 5, board: Vec::new(), moves: 0, iterations: 1};
+    let mut game = Grid {size: 2, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
     //game.print_state();
@@ -14,8 +14,9 @@ fn main() {
     //    None => {println!("No index found")}
     //}
     //println!("Game is solvable: {}", game.is_solvable());
-
-    loop {
+    let mut solved: bool = false;
+    while !solved {
+        game.print_stats();
         let movables: Vec<Coord> = game.get_movable_tiles();
         game.check_goal_state();
         game.print_state();
@@ -31,7 +32,9 @@ fn main() {
                     Some(c) => {
                         if movables.contains(&c) {
                             game.move_tile(c);
-                            println!("Moves: {}", game.moves)
+                            println!("Moves: {}", game.moves);
+
+                            solved = game.check_goal_state();
                         } else {
                             println!("Not movable")
                         }
@@ -45,8 +48,15 @@ fn main() {
             }
         }
     }
+    game.print_state();
+    println!("Puzzle has been solved!")
+}
 
+fn solve(g: Grid) {
+    let mut solved: bool = false;
+    while !solved {
 
+    }
 }
 
 #[derive(Debug)] // Makes printing debug possible {:?}
@@ -65,10 +75,35 @@ impl Coord {
 }
 
 struct Grid {
-    size: u32, board: Vec<Vec<i32>>, moves: i32, iterations: i32
+    size: u32,
+    board: Vec<Vec<i32>>,
+    moves: i32,
+    iterations: i32,
+    heuristic: i32
 }
 
 impl Grid {
+    fn print_stats(&self) {
+        let mut text: String = String::from("");
+        let h : i32;
+
+        text.push_str("Heuristic Type: ");
+        match self.heuristic {
+            0 => {text.push_str("Misplaced Tiles"); h = self.misplace_heuristic()},
+            1 => {text.push_str("Manhattan"); h = self.manhattan_heuristic()},
+            _ => {text.push_str("Unknown heuristic"); h = 0}
+        }
+        text.push_str(" | f(n) = ");
+        text.push_str(self.f().to_string().as_str());
+        text.push_str(" | g(n) = ");
+        text.push_str(self.g().to_string().as_str());
+        text.push_str(" | h(n) = ");
+        text.push_str(h.to_string().as_str());
+
+
+        println!("{}", text);
+
+    }
     fn is_solvable(&self) -> bool {
         let is_even: bool = self.size % 2 == 0;
         let inversions: i32 = self.calculate_inversions();
@@ -107,12 +142,58 @@ impl Grid {
 
         inversions
     }
-    fn calculate_g(&self) -> i32 {
-        return self.moves;
+
+    fn g(&self) -> i32 {
+        self.moves
     }
 
-    fn calculate_heuristic(&self) {
+    fn f(&self) -> i32 {
+        match self.heuristic {
+            0 => self.misplace_heuristic() + self.g(),
+            1 => self.manhattan_heuristic() + self.g(),
+            _ => {println!("Invalid heuristic value chosen"); 0}
+        }
+    }
 
+    fn misplace_heuristic(&self) -> i32 {
+        let mut misplaced: i32 = 0;
+        let mut goal_state : Vec<Vec<i32>> = self.generate_goal_state();
+        for i in 0..(self.size*self.size) {
+            if self.board[(i / 3) as usize][(i % 3) as usize] != goal_state[(i / 3) as usize][(i % 3) as usize] {
+                misplaced += 1;
+            }
+        }
+        misplaced
+    }
+
+    fn manhattan_heuristic(&self) -> i32 {
+        let mut manhattan: i32 = 0;
+        let mut counter: i32 = -1;
+        for i in 0..(self.size*self.size) {
+            counter += 1;
+            let current: Option<Coord> = self.get_number_index(i as i32);
+            //println!("{}: {:?}, counter: {}", i, current, counter);
+            if (self.size == 3 && i == 0) {
+                let x: i32 = 2;
+                let y: i32 = 2;
+                let c = current.unwrap();
+                manhattan += ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs()
+
+            } else {
+                if (self.size == 3 && i == 5) {counter += 1;}
+                let x: i32 = ((counter - 1) % 3) + 1;
+                let y: i32 = (((counter - 1) / 3)) + 1;
+                let c = current.unwrap();
+                //println!("{}, {}", x, y);
+                //println!("manhattan: {}", ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs());
+                manhattan += ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs()
+            }
+
+
+
+        }
+        //println!("Manhattan: {}", manhattan);
+        manhattan
     }
 
     fn set_tile(&mut self, coord: Coord, value: i32) {
@@ -200,7 +281,8 @@ impl Grid {
             print!("\n")
         }
     }
-    fn check_goal_state(&self) -> bool {
+
+    fn generate_goal_state(&self) -> Vec<Vec<i32>> {
         let mut counter: i32 = 0;
         let mut goal_state : Vec<Vec<i32>> = Vec::new();
         for _i in 0..self.size {
@@ -222,9 +304,11 @@ impl Grid {
                 counter = 5
             }
         }
-        //println!("{:?}", goal_state);
-        let _equal = goal_state == self.board;
-        false
+        goal_state
+    }
+    fn check_goal_state(&self) -> bool {
+        let mut goal_state : Vec<Vec<i32>> = self.generate_goal_state();
+        goal_state == self.board
     }
     fn initialize_board(&mut self) {
         self.board.clear();
