@@ -7,24 +7,24 @@ fn main() {
     let mut game = Grid {size: 4, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
-    //game.board = vec![
-    //    vec![2, 8, 3],
-    //    vec![1, 6, 4],
-    //    vec![7, 0, 5],
-    //];
+    game.board = vec![
+        vec![2, 8, 3],
+        vec![1, 6, 4],
+        vec![7, 0, 5],
+    ];
     game.print_state();
-    //game.print_state();
 
-    //let to_index: i32 = 0;
-    //let index = game.get_number_index(to_index);
-    //match index {
-    //    Some(c) => println!("Index of {}: {},{}", to_index, c.x(), c.y()),
-    //    None => {println!("No index found")}
-    //}
-    //println!("Game is solvable: {}", game.is_solvable());
+    //let mut test : PriorityQueue<String, Reverse<i32>> = PriorityQueue::new();
+    //test.push("test".parse().unwrap(), Reverse(6));
+    //test.push("testing".parse().unwrap(), Reverse(2));
+    //test.push("testing123".parse().unwrap(), Reverse(130));
+    //println!("{:?}", test.pop().unwrap());
+
 
     let mut optimal : Vec<i32> = Vec::new();
-    //optimal = astar(game.clone());
+    if (game.size == 2 || game.size == 3 || game.size == 4) {
+        optimal = astar(game.clone());
+    }
 
     let mut solved: bool = false;
     while !solved {
@@ -69,14 +69,18 @@ fn main() {
 
 fn astar(g: Grid) -> Vec<i32> {
     println!("Running A*..");
+    let mut explored_nodes = 0;
     let mut history: Vec<Node> = Vec::new();
-    let mut fringe: PriorityQueue<Node, Reverse<i32>> = explore(Node {c: g, moves: Vec::new()}, &history);
+    let mut fringe: PriorityQueue<Node, Reverse<i32>> = explore(Node {c: g, moves: Vec::new()}, &mut history);
     history.extend(get_keys(fringe.clone()));
 
     while !fringe.is_empty() {
+        explored_nodes += 1;
+
         let node = fringe.pop().unwrap();
+        println!("Explored nodes: {} - f(n) = {}", explored_nodes, node.0.c.misplace_heuristic());
         //println!("F: {}", node.1.0);
-        fringe.extend(explore(node.0.clone(), &history));
+        fringe.extend(explore(node.0.clone(), &mut history));
         history.push(node.0.clone());
         //println!("{:?}", get_keys(fringe.clone()));
         if node.0.c.check_goal_state() {
@@ -96,7 +100,7 @@ fn get_keys(mut fringe: PriorityQueue<Node, Reverse<i32>>) -> Vec<Node> {
     keys
 }
 
-fn explore(n: Node, history: &Vec<Node>) -> PriorityQueue<Node, Reverse<i32>> {
+fn explore(n: Node, mut history: &mut Vec<Node>) -> PriorityQueue<Node, Reverse<i32>> {
     let mut fringe: PriorityQueue<Node, Reverse<i32>> = PriorityQueue::new();
     let moves: Vec<Coord> = n.c.get_movable_tiles();
     for coord in &moves {
@@ -113,7 +117,8 @@ fn explore(n: Node, history: &Vec<Node>) -> PriorityQueue<Node, Reverse<i32>> {
         m.push(n.c.get_tile(coord).unwrap());
         let n = Node {c: grid, moves: m};
         if !history.contains(&n) {
-            fringe.push(n, Reverse(f));
+            fringe.push(n.clone(), Reverse(f));
+            history.push(n);
         }
 
 
@@ -250,7 +255,7 @@ impl Grid {
     fn f(&self) -> i32 {
         match self.heuristic {
             0 => self.misplace_heuristic() + self.g(),
-            1 => self.manhattan_heuristic() + self.g(),
+            1 => self.manhattan_heuristic()*(self.size*self.size)as i32 + self.g(),
             _ => {println!("Invalid heuristic value chosen"); 0}
         }
     }
