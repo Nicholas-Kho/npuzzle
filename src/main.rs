@@ -1,10 +1,10 @@
 use std::io;
 use std::num::ParseIntError;
 use priority_queue::PriorityQueue;
+use std::cmp::Reverse;
 
 fn main() {
-    let mut fringe: PriorityQueue<String, i32> = PriorityQueue::new();
-    let mut game = Grid {size: 4, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
+    let mut game = Grid {size: 2, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
     //game.print_state();
@@ -16,8 +16,6 @@ fn main() {
     //    None => {println!("No index found")}
     //}
     //println!("Game is solvable: {}", game.is_solvable());
-
-
 
     let mut solved: bool = false;
     while !solved {
@@ -57,16 +55,78 @@ fn main() {
 }
 
 
+fn astar(g: Grid) -> Vec<i32> {
+    let mut fringe: PriorityQueue<Node, Reverse<i32>> = PriorityQueue::new();
+    let moves: Vec<Coord> = g.get_movable_tiles();
+    let mut history: Vec<Grid> = Vec::new();
+    for coord in &moves {
+        let mut temp = g.clone();
+        temp.move_tile(coord.clone());
+        let mut total_moves: Vec<i32> = Vec::new();
+        let num_option: Option<i32> = temp.get_tile(coord);
+        match num_option {
+            Some(i) => {total_moves.push(i);}
+            None => {}
+        }
+        let f = temp.f();
+        history.push(temp.clone());
+        fringe.push(Node {c: temp, moves: total_moves}, Reverse(f));
+    }
 
-struct Node {
-    c: Grid, g: i32, f: i32, moves: Vec<i32>, history: Vec<i32>
+    if !fringe.is_empty() {
+        let nodes = fringe.pop().unwrap();
+
+    }
+
+    Vec::new()
+
+
 }
 
+fn explore(n: Node) -> PriorityQueue<Node, Reverse<i32>> {
+    let mut fringe: PriorityQueue<Node, Reverse<i32>> = PriorityQueue::new();
+    let moves: Vec<Coord> = n.c.get_movable_tiles();
+    for coord in &moves {
+        let mut grid = n.c.clone();
+        grid.move_tile(coord.clone());
+        let f = grid.f();
+        let mut m = n.moves.clone();
+        m.push(n.c.get_tile(coord).unwrap());
+
+        fringe.push(Node {c: grid, moves: m}, Reverse(f));
+    }
+
+    fringe
+}
+
+
+
+fn remove_option(l: Vec<Option<i32>>) -> Vec<i32> {
+    let mut new: Vec<i32> = Vec::new();
+    for value in &l {
+        match value {
+            Some(num) => {new.push(*num);},
+            None => {}
+        }
+    }
+    new
+}
+
+
+
+
+#[derive(PartialEq, Eq, Hash, Debug)]
+struct Node {
+    c: Grid, moves: Vec<i32>
+}
+
+#[derive(Clone)]
 #[derive(Debug)] // Makes printing debug possible {:?}
 #[derive(PartialEq)] // Makes comparisons (==) possible
 struct Coord {
     x: i32, y: i32
 }
+
 
 impl Coord {
     fn x(&self) -> i32 {
@@ -77,6 +137,7 @@ impl Coord {
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 struct Grid {
     size: u32,
     board: Vec<Vec<i32>>,
@@ -104,7 +165,6 @@ impl Grid {
         text.push_str(h.to_string().as_str());
 
         println!("{}", text);
-
     }
     fn is_solvable(&self) -> bool {
 
@@ -122,9 +182,11 @@ impl Grid {
                 Some(index) => {
                     // Check if blank is even starting from the bottom
                     let blank_even_index: bool = (index.y() + 1 + (index.x()%2)) % 2 == 0;
+                    let row_from_bottom: i32 = (self.size - index.x() as u32) as i32;
                     //println!("Is blank even: {}", blank_even_index);
-                    if (blank_even_index && inversions % 2 == 0) { return true }
-                    if (!blank_even_index && inversions % 2 == 1) {return true}
+                    //if (blank_even_index && inversions % 2 == 0) {return true}
+                    //if (!blank_even_index && inversions % 2 == 1) {return true}
+                    return (inversions + row_from_bottom) % 2 == 0;
                 }
                 None => {}
             }
@@ -143,7 +205,6 @@ impl Grid {
                 }
             }
         }
-
         inversions
     }
 
@@ -192,9 +253,6 @@ impl Grid {
                 //println!("manhattan: {}", ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs());
                 manhattan += ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs()
             }
-
-
-
         }
         //println!("Manhattan: {}", manhattan);
         manhattan
@@ -235,7 +293,6 @@ impl Grid {
             self.moves += 1;
             return
         }
-
     }
     fn get_number_index(&self, num: i32) -> Option<Coord> {
         for i in 0..self.size {
