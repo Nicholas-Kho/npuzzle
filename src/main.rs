@@ -1,8 +1,10 @@
 use std::io;
 use std::num::ParseIntError;
+use priority_queue::PriorityQueue;
 
 fn main() {
-    let mut game = Grid {size: 2, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
+    let mut fringe: PriorityQueue<String, i32> = PriorityQueue::new();
+    let mut game = Grid {size: 4, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
     //game.print_state();
@@ -14,6 +16,9 @@ fn main() {
     //    None => {println!("No index found")}
     //}
     //println!("Game is solvable: {}", game.is_solvable());
+
+
+
     let mut solved: bool = false;
     while !solved {
         game.print_stats();
@@ -33,18 +38,17 @@ fn main() {
                         if movables.contains(&c) {
                             game.move_tile(c);
                             println!("Moves: {}", game.moves);
-
+                            println!("Inversions: {} ", game.calculate_inversions_any(game.board.clone()));
                             solved = game.check_goal_state();
                         } else {
                             println!("Not movable")
                         }
-
                     },
                     None => println!("Not a valid number"),
                 }
             }
-            Err(Error) => {
-                println!("Not a number, {}", Error);
+            Err(error) => {
+                println!("Not a number, {}", error);
             }
         }
     }
@@ -52,11 +56,10 @@ fn main() {
     println!("Puzzle has been solved!")
 }
 
-fn solve(g: Grid) {
-    let mut solved: bool = false;
-    while !solved {
 
-    }
+
+struct Node {
+    c: Grid, g: i32, f: i32, moves: Vec<i32>, history: Vec<i32>
 }
 
 #[derive(Debug)] // Makes printing debug possible {:?}
@@ -100,14 +103,17 @@ impl Grid {
         text.push_str(" | h(n) = ");
         text.push_str(h.to_string().as_str());
 
-
         println!("{}", text);
 
     }
     fn is_solvable(&self) -> bool {
+
         let is_even: bool = self.size % 2 == 0;
-        let inversions: i32 = self.calculate_inversions();
+        let inversions: i32 = self.calculate_inversions_any(self.board.clone());
         //println!("Number of inversions: {}", inversions);
+        if (self.size == 3) {
+            return inversions % 2 == 1;
+        }
         if !is_even {
             return inversions % 2 == 0;
         } else if is_even {
@@ -117,26 +123,24 @@ impl Grid {
                     // Check if blank is even starting from the bottom
                     let blank_even_index: bool = (index.y() + 1 + (index.x()%2)) % 2 == 0;
                     //println!("Is blank even: {}", blank_even_index);
-                    if (blank_even_index && inversions % 2 == 1) { return true }
-                    if (!blank_even_index && inversions % 2 == 0) {return true}
+                    if (blank_even_index && inversions % 2 == 0) { return true }
+                    if (!blank_even_index && inversions % 2 == 1) {return true}
                 }
                 None => {}
             }
         }
         false
     }
-    fn calculate_inversions(&self) -> i32 {
+
+    fn calculate_inversions_any(&self, grid: Vec<Vec<i32>>) -> i32 {
         let mut inversions: i32 = 0;
-        let mut v: Vec<i32> = (0..(self.size * self.size) as i32).collect();
-        for i in 0..(self.size*self.size) {
-            let num: i32 = self.board[i as usize / self.size as usize][i as usize % self.size as usize];
-            let index: Option<usize> = v.iter().position(|&r| r == num);
-            match index {
-                Some(x) => {
-                    inversions += x as i32;
-                    v.remove(x);
+        for i in 0..self.size*self.size {
+            let num: i32 = grid[(i/self.size) as usize][(i % self.size) as usize];
+            for x in i+1..self.size*self.size {
+                let comparison: i32 = grid[(x/self.size) as usize][(x % self.size) as usize];
+                if (num != 0 && comparison != 0 && num > comparison) {
+                    inversions += 1
                 }
-                None => {}
             }
         }
 
@@ -283,8 +287,20 @@ impl Grid {
     }
 
     fn generate_goal_state(&self) -> Vec<Vec<i32>> {
+
+        // Assignment goal state:
+        if (self.size == 3) {
+            return vec![
+                vec![1, 2, 3],
+                vec![8, 0, 4],
+                vec![7, 6, 5],
+            ];
+        }
+
         let mut counter: i32 = 0;
         let mut goal_state : Vec<Vec<i32>> = Vec::new();
+
+        // Populate an empty grid of size.size * size.size
         for _i in 0..self.size {
             let mut temp: Vec<i32> = Vec::new();
             for _x in 0..self.size {
@@ -293,6 +309,9 @@ impl Grid {
             goal_state.push(temp);
         }
         let n: usize = (self.size * self.size) as usize;
+
+
+        // Generate the grid
         if (self.size == 3) {counter += 1}
         for mut i in 0..n {
             goal_state[i / self.size as usize][i % self.size as usize] = counter;
