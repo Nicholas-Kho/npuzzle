@@ -4,9 +4,15 @@ use priority_queue::PriorityQueue;
 use std::cmp::Reverse;
 
 fn main() {
-    let mut game = Grid {size: 2, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
+    let mut game = Grid {size: 4, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
+    //game.board = vec![
+    //    vec![2, 8, 3],
+    //    vec![1, 6, 4],
+    //    vec![7, 0, 5],
+    //];
+    game.print_state();
     //game.print_state();
 
     //let to_index: i32 = 0;
@@ -17,8 +23,13 @@ fn main() {
     //}
     //println!("Game is solvable: {}", game.is_solvable());
 
+    let mut optimal : Vec<i32> = Vec::new();
+    //optimal = astar(game.clone());
+
     let mut solved: bool = false;
     while !solved {
+        println!("Optimal moves: {:?}", optimal);
+        println!("Inversions: {} ", game.calculate_inversions_any(game.board.clone()));
         game.print_stats();
         let movables: Vec<Coord> = game.get_movable_tiles();
         game.check_goal_state();
@@ -36,7 +47,8 @@ fn main() {
                         if movables.contains(&c) {
                             game.move_tile(c);
                             println!("Moves: {}", game.moves);
-                            println!("Inversions: {} ", game.calculate_inversions_any(game.board.clone()));
+
+
                             solved = game.check_goal_state();
                         } else {
                             println!("Not movable")
@@ -56,46 +68,56 @@ fn main() {
 
 
 fn astar(g: Grid) -> Vec<i32> {
-    let mut fringe: PriorityQueue<Node, Reverse<i32>> = PriorityQueue::new();
-    let moves: Vec<Coord> = g.get_movable_tiles();
-    let mut history: Vec<Grid> = Vec::new();
-    for coord in &moves {
-        let mut temp = g.clone();
-        temp.move_tile(coord.clone());
-        let mut total_moves: Vec<i32> = Vec::new();
-        let num_option: Option<i32> = temp.get_tile(coord);
-        match num_option {
-            Some(i) => {total_moves.push(i);}
-            None => {}
+    println!("Running A*..");
+    let mut history: Vec<Node> = Vec::new();
+    let mut fringe: PriorityQueue<Node, Reverse<i32>> = explore(Node {c: g, moves: Vec::new()}, &history);
+    history.extend(get_keys(fringe.clone()));
+
+    while !fringe.is_empty() {
+        let node = fringe.pop().unwrap();
+        //println!("F: {}", node.1.0);
+        fringe.extend(explore(node.0.clone(), &history));
+        history.push(node.0.clone());
+        //println!("{:?}", get_keys(fringe.clone()));
+        if node.0.c.check_goal_state() {
+            //println!("Solution found: {:?}", history);
+            return node.0.moves
         }
-        let f = temp.f();
-        history.push(temp.clone());
-        fringe.push(Node {c: temp, moves: total_moves}, Reverse(f));
     }
-
-    if !fringe.is_empty() {
-        let nodes = fringe.pop().unwrap();
-
-    }
-
+    println!("No solution found");
     Vec::new()
-
-
 }
 
-fn explore(n: Node) -> PriorityQueue<Node, Reverse<i32>> {
+fn get_keys(mut fringe: PriorityQueue<Node, Reverse<i32>>) -> Vec<Node> {
+    let mut keys: Vec<Node> = Vec::new();
+    while let Some(item) = fringe.pop() {
+        keys.push(item.0);
+    }
+    keys
+}
+
+fn explore(n: Node, history: &Vec<Node>) -> PriorityQueue<Node, Reverse<i32>> {
     let mut fringe: PriorityQueue<Node, Reverse<i32>> = PriorityQueue::new();
     let moves: Vec<Coord> = n.c.get_movable_tiles();
     for coord in &moves {
+
+        // New grid
         let mut grid = n.c.clone();
         grid.move_tile(coord.clone());
+
+        // Heuristic value
         let f = grid.f();
+
+        // Append new move
         let mut m = n.moves.clone();
         m.push(n.c.get_tile(coord).unwrap());
+        let n = Node {c: grid, moves: m};
+        if !history.contains(&n) {
+            fringe.push(n, Reverse(f));
+        }
 
-        fringe.push(Node {c: grid, moves: m}, Reverse(f));
+
     }
-
     fringe
 }
 
@@ -115,10 +137,23 @@ fn remove_option(l: Vec<Option<i32>>) -> Vec<i32> {
 
 
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(Hash, Debug, Clone)]
 struct Node {
     c: Grid, moves: Vec<i32>
 }
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+
+        if (self.c.board == other.c.board) {
+            //println!("equal {:?} {:?}", self.c.board, other.c.board);
+            return true
+        }
+        false
+    }
+}
+impl Eq for Node {}
+
 
 #[derive(Clone)]
 #[derive(Debug)] // Makes printing debug possible {:?}
@@ -224,7 +259,7 @@ impl Grid {
         let mut misplaced: i32 = 0;
         let mut goal_state : Vec<Vec<i32>> = self.generate_goal_state();
         for i in 0..(self.size*self.size) {
-            if self.board[(i / 3) as usize][(i % 3) as usize] != goal_state[(i / 3) as usize][(i % 3) as usize] {
+            if self.board[(i / self.size) as usize][(i % self.size) as usize] != goal_state[(i / self.size) as usize][(i % self.size) as usize] {
                 misplaced += 1;
             }
         }
@@ -233,28 +268,14 @@ impl Grid {
 
     fn manhattan_heuristic(&self) -> i32 {
         let mut manhattan: i32 = 0;
-        let mut counter: i32 = -1;
-        for i in 0..(self.size*self.size) {
-            counter += 1;
-            let current: Option<Coord> = self.get_number_index(i as i32);
-            //println!("{}: {:?}, counter: {}", i, current, counter);
-            if (self.size == 3 && i == 0) {
-                let x: i32 = 2;
-                let y: i32 = 2;
-                let c = current.unwrap();
-                manhattan += ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs()
+        let goal_state = self.generate_goal_state();
 
-            } else {
-                if (self.size == 3 && i == 5) {counter += 1;}
-                let x: i32 = ((counter - 1) % 3) + 1;
-                let y: i32 = (((counter - 1) / 3)) + 1;
-                let c = current.unwrap();
-                //println!("{}, {}", x, y);
-                //println!("manhattan: {}", ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs());
-                manhattan += ((c.y()+1)-x).abs() + ((c.x()+1)-y).abs()
+        for i in 0..self.size {
+            for x in 0..self.size {
+                let c: Coord = self.get_number_index(goal_state[i as usize][x as usize]).unwrap();
+                manhattan += (c.x - i as i32).abs() + (c.y - x as i32).abs()
             }
         }
-        //println!("Manhattan: {}", manhattan);
         manhattan
     }
 
@@ -320,10 +341,10 @@ impl Grid {
             let x: i32 = coord.x();
             let y: i32 = coord.y();
             let mut quad: Vec<Coord> = Vec::new();
-            quad.push(Coord { x: x-1, y: y });
-            quad.push(Coord { x: x, y: y-1});
-            quad.push(Coord { x: x, y: y+1 });
-            quad.push(Coord { x: x+1, y: y });
+            if x > 0 {quad.push(Coord { x: x-1, y: y });}
+            if (y > 0) {quad.push(Coord { x: x, y: y-1});}
+            if self.size > (y+1) as u32 {quad.push(Coord { x: x, y: y+1 });}
+            if self.size > (x+1) as u32 {quad.push(Coord { x: x+1, y: y });}
             quad
         } else {
             Vec::new()
