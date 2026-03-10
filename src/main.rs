@@ -4,7 +4,7 @@ use priority_queue::PriorityQueue;
 use std::cmp::Reverse;
 
 fn main() {
-    let mut game = Grid {size: 4, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
+    let mut game = Grid {size: 3, board: Vec::new(), moves: 0, iterations: 1, heuristic: 0};
     game.check_goal_state();
     game.initialize_board();
     game.board = vec![
@@ -22,9 +22,15 @@ fn main() {
 
 
     let mut optimal : Vec<i32> = Vec::new();
-    if (game.size == 2 || game.size == 3 || game.size == 4) {
+    println!("Inversions: {} ", game.calculate_inversions_any(game.board.clone()));
+
+    // Heuristic takes too long for a 5x5 grid or anything bigger
+    // Thus A* will not run on anything bigger than a 4x4
+    // Game may still be played past a 4x4
+    if (game.size <= 4) {
         optimal = astar(game.clone());
     }
+
 
     let mut solved: bool = false;
     while !solved {
@@ -63,6 +69,7 @@ fn main() {
         }
     }
     game.print_state();
+    game.print_stats();
     println!("Puzzle has been solved!")
 }
 
@@ -85,6 +92,7 @@ fn astar(g: Grid) -> Vec<i32> {
         //println!("{:?}", get_keys(fringe.clone()));
         if node.0.c.check_goal_state() {
             //println!("Solution found: {:?}", history);
+            println!("Explored nodes: {} - Optimal number of moves: {}", explored_nodes, node.0.moves.len());
             return node.0.moves
         }
     }
@@ -255,7 +263,7 @@ impl Grid {
     fn f(&self) -> i32 {
         match self.heuristic {
             0 => self.misplace_heuristic() + self.g(),
-            1 => self.manhattan_heuristic()*(self.size*self.size)as i32 + self.g(),
+            1 => self.manhattan_heuristic()*(self.size*self.size*self.size)as i32 + self.g(),
             _ => {println!("Invalid heuristic value chosen"); 0}
         }
     }
