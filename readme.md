@@ -33,8 +33,9 @@ The puzzle is solvable if the number of $inversions = odd$.
 The puzzle is solvable if $inversions + f = even$, where $f$ is defined as the number of rows the $0th$ tile is from the bottom of the grid.
 
 ### Inversion
-An inversion is defined as a pair of numbers <a appears before $b$ but
-
+- An inversion is defined as a pair of numbers where $a$ appears before $b$ and $a > b$
+- The grid may be flattened to a 1D array to check for inversions
+- $0$ is excluded from all inversion checks
 
 ## Heuristic Weights
 The heuristic is defined as $f(n) = g(n) + h(n$),
@@ -47,8 +48,8 @@ The heuristic is defined as $f(n) = g(n) + h(n$),
 ### Manhattan Distance
 - $h(n)$ is defined as the total distance of tiles from their goal state position, calculated in Manhattan distance
 - Typically results in less nodes explored  than the misplaced tiles heuristic and thus a faster A* runtime.
-- Is weighted $3*$ as much as it should to improve A* speed
-  - Keep in mind that this increases the total `f(n)`
+- Is weighted $3*$ as much as it is normally weighted to improve A* speed
+  - Keep in mind that this increases the total by $h(n) * 3$
 
 
 ## Deployment
