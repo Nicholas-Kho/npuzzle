@@ -21,7 +21,7 @@ impl Grid {
                 h = self.misplace_heuristic()
             },
             1 => {
-                text.push_str("Manhattan (weighted 3x)");
+                text.push_str("Manhattan (weighted by n^2)");
                 h = self.manhattan_heuristic()
             },
             _ => {
@@ -35,7 +35,7 @@ impl Grid {
         text.push_str(self.g().to_string().as_str());
         text.push_str(" | h(n) = ");
         text.push_str(h.to_string().as_str());
-        if (self.heuristic == 1) {
+        if self.heuristic == 1 {
             text.push_str(" (x3) ");
         }
 

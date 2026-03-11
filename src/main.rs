@@ -14,8 +14,9 @@ fn main() {
     let mut game = Grid {size: 3, board: Vec::new(), moves: 0, iterations: 1, heuristic: 1};
     game.check_goal_state();
     game.initialize_board();
+    
+    let mut set_state = false;
 
-    let set_state = false;
     // Change this to true if you wish for the initial state to be:
     // 2, 8, 3
     // 1, 6, 4

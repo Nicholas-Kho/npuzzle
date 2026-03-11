@@ -64,11 +64,23 @@ The heuristic is defined as $f(n) = g(n) + h(n$),
 
 ## Modifying variables
 ### Changing $n$
+`./src/main.rs`
 - `Line 7` contains the initialization of the first grid state. The parameter `size` may be modified that acts as the $n$ variable.
 - The `heuristic` parameter lets you choose between the misplaced tiles heuristic and the Manhattan heuristic. 
   - `heuristic: 0` uses the misplaced tiles heuristic
   - `heuristic: 1` uses the Manhattan tile heuristic
 
 ### Setting the initial state to a non-random one
+`./src/main.rs`
 - Lines `10-14` may be used to initialize a vector containing a set of preset values if you wish to use a non-random one.
 
+### Changing Heuristic Weights
+
+
+
+All heuristic calculations are located in `./src/grid.rs`
+- For an optimal solution, a heuristic must never overestimate. 
+  - However, this exponentially increases the computational cost to find the path
+  - Thus, to get a solution within a reasonable timeframe, heuristics may be multiplied to lower the number of nodes that need to be explored
+- By default, the Manhattan heuristic is multipled by $n$
+- `Line 90` has the option to change the multiplication of heuristics
